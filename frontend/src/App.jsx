@@ -40,6 +40,7 @@ const PostCard = React.memo(({ post }) => (
 const App = () => {
   const [data, setData] = useState({ latest_posts: [], history: [], summary: {}, trending: [], mode: 'mock' });
   const [loading, setLoading] = useState(true);
+  const [serverStatus, setServerStatus] = useState('connecting');
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
 
@@ -47,10 +48,12 @@ const App = () => {
     try {
       const response = await axios.get(`${API_BASE}/snapshot`);
       setData(response.data);
+      setServerStatus('online');
       if (loading) setLoading(false);
       setError(null);
     } catch (err) {
-      setError("Lost connection to analysis engine.");
+      setServerStatus('offline');
+      setError("Lost connection to analysis engine. Checking status...");
     }
   }, [loading]);
 
@@ -97,6 +100,11 @@ const App = () => {
         <div className="sidebar-header">
            <Shield size={24} color="#3b82f6" />
            <h1>POLITICSEYE</h1>
+        </div>
+
+        <div className={`server-status ${serverStatus}`}>
+          <div className="status-dot"></div>
+          <span>Server: {serverStatus.toUpperCase()}</span>
         </div>
 
         <div className="btn-group button-grid">

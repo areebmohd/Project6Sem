@@ -28,6 +28,14 @@ streamer = PoliticalStreamer(
     news_api_key=NEWS_API_KEY
 )
 
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({
+        "status": "online",
+        "message": "PoliticsEye Analysis Engine is active",
+        "endpoints": ["/api/health", "/api/snapshot", "/api/toggle-mode"]
+    })
+
 @app.route('/api/health', methods=['GET'])
 def health():
     return jsonify({

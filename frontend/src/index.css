@@ -347,6 +347,67 @@ h3 {
   gap: 12px;
 }
 
+/* Server Status Overlay */
+.server-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #555;
+  position: relative;
+}
+
+.server-status.online .status-dot {
+  background: var(--pos);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.server-status.online .status-dot::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border-radius: 50%;
+  background: var(--pos);
+  animation: pulse 2s infinite;
+}
+
+.server-status.offline .status-dot {
+  background: var(--neg);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.server-status.connecting .status-dot {
+  background: #eab308;
+  animation: blink 1s infinite;
+}
+
+.server-status.online span { color: var(--pos); }
+.server-status.offline span { color: var(--neg); }
+
+@keyframes pulse {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3); opacity: 0; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 /* Feed List */
 .feed-stream {
   display: flex;
