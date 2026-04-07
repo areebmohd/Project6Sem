@@ -28,6 +28,13 @@ streamer = PoliticalStreamer(
     news_api_key=NEWS_API_KEY
 )
 
+# Ensure the streamer starts in each worker process (essential for Gunicorn/Production)
+@app.before_request
+def start_background_tasks():
+    if not streamer._running:
+        print(f"Starting background scraper thread for process {os.getpid()}...")
+        streamer.start()
+
 @app.route('/', methods=['GET'])
 def index():
     return jsonify({
@@ -82,9 +89,5 @@ def toggle_mode():
     return jsonify({"success": False, "error": "Invalid mode"}), 400
 
 if __name__ == '__main__':
-    streamer.start()
     port = int(os.getenv("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-else:
-    # This block is for production (e.g., Gunicorn)
-    streamer.start()
