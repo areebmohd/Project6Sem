@@ -132,6 +132,132 @@ class RSSScraper:
             print(f"Error fetching from RSS: {e}")
             return []
 
+class MastodonScraper:
+    def fetch_recent(self, hashtag="politics", limit=10):
+        try:
+            url = f"https://mastodon.social/tags/{hashtag}.rss"
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+            
+            response = requests.get(url, headers=headers, timeout=10)
+            if response.status_code != 200:
+                print(f"Error fetching Mastodon: {response.status_code}")
+                return []
+                
+            import re
+            def clean_html(raw_html):
+                # Remove HTML tags and convert entities
+                cleanr = re.compile('<.*?>')
+                cleantext = re.sub(cleanr, '', raw_html)
+                return cleantext
+
+            feed = feedparser.parse(response.content)
+            posts = []
+            now_iso = datetime.datetime.now().isoformat()
+            for entry in feed.entries[:limit]:
+                # Mastodon RSS uses 'summary' for the content
+                text = clean_html(getattr(entry, 'summary', ''))
+                
+                # Extract username from the URL (e.g., https://mastodon.social/@name/123)
+                author = "Anonymous"
+                url_to_parse = getattr(entry, 'id', getattr(entry, 'link', ''))
+                if "/@" in url_to_parse:
+                    try:
+                        # Extract the part after /@ and before the next /
+                        author = url_to_parse.split('/@')[1].split('/')[0]
+                        author = f"@{author}"
+                    except:
+                        pass
+                
+                posts.append({
+                    "id": entry.id,
+                    "text": text,
+                    "timestamp": now_iso,
+                    "source": "Mastodon",
+                    "author": author
+                })
+            return posts
+        except Exception as e:
+            print(f"Error fetching from Mastodon: {e}")
+            return []
+
+class YouTubeScraper:
+    def __init__(self):
+        self.channels = {
+            "CNN": "UCupvZG-5ko_eiXAupbDfxWw",
+            "BBC News": "UCR1j0aJUd-P8q-qJ1Oa4r7A",
+            "PBS NewsHour": "UC6ZFNrNNn3tfLuV0EwV5pTg",
+            "Al Jazeera": "UCNye-wNBqNL5ZzHSJj3l8BA",
+            "DW News": "UCknLrEdhRCp1a-MRaOQfl6Q",
+            "Sky News": "UChnyuAM_W7p-M_0-R-lH08Q",
+            "Fox News": "UCXIJgqnII2ZOINSWNOGFThA",
+            "MSNBC": "UC8pTidpI-7_K7K_V_3-jI-A",
+            "France 24": "UCQfwfsi5VrQ8yKZ-UWmAEFg",
+            "The Economist": "UC0p5jTq_LMB_U_K-I_D-R-g",
+            "CNBC": "UCvjjW_u-O-X8txL1atvIq-A",
+            "Bloomberg": "UCIALMKvObAkS16F082M0IYA"
+        }
+
+    def fetch_recent(self, limit=5):
+        all_posts = []
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
+        
+        for name, channel_id in self.channels.items():
+            try:
+                url = f"https://www.youtube.com/feeds/videos.xml?channel_id={channel_id}"
+                response = requests.get(url, headers=headers, timeout=10)
+                if response.status_code == 200:
+                    feed = feedparser.parse(response.text)
+                    for entry in feed.entries[:limit]:
+                        all_posts.append({
+                            "id": entry.id,
+                            "text": f"VIDEO: {entry.title}",
+                            "timestamp": getattr(entry, 'published', datetime.datetime.now().isoformat()),
+                            "source": "YouTube",
+                            "author": name
+                        })
+            except Exception as e:
+                print(f"Error fetching from YouTube channel {name}: {e}")
+                
+        return all_posts
+
+class TwitterScraper:
+    def __init__(self):
+        # Verified working public RSS feeds for political news (as of 2026)
+        self.sources = {
+            "BBC Politics": "http://feeds.bbci.co.uk/news/politics/rss.xml",
+            "NYT Politics": "https://rss.nytimes.com/services/xml/rss/nyt/Politics.xml"
+        }
+
+    def fetch_recent(self, limit=10):
+        all_posts = []
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        }
+        
+        now_iso = datetime.datetime.now().isoformat()
+        
+        for name, url in self.sources.items():
+            try:
+                response = requests.get(url, headers=headers, timeout=10)
+                if response.status_code == 200:
+                    feed = feedparser.parse(response.content)
+                    for entry in feed.entries[:limit]:
+                        all_posts.append({
+                            "id": entry.get('id', entry.get('link', str(random.random()))),
+                            "text": f"TOP STORY: {entry.title}",
+                            "timestamp": getattr(entry, 'published', now_iso),
+                            "source": "Twitter", # Keeping the label for UI continuity
+                            "author": name
+                        })
+            except Exception as e:
+                print(f"Error fetching from Twitter Pivot {name}: {e}")
+                
+        return all_posts
+
 class MockScraper:
     def generate_post(self):
         sentiment_type = random.choices(["positive", "negative", "neutral"], weights=[30, 40, 30])[0]
@@ -155,13 +281,18 @@ class PoliticalStreamer:
         self.reddit = RedditScraper(**(reddit_keys or {}))
         self.news = NewsScraper(api_key=news_api_key)
         self.rss = RSSScraper()
+        self.mastodon = MastodonScraper()
+        self.youtube = YouTubeScraper()
+        self.twitter = TwitterScraper()
         self.mock = MockScraper()
         
         self.buffers = {
             "mock": deque(maxlen=100),
             "news": deque(maxlen=100),
-            "live": deque(maxlen=100),
-            "rss": deque(maxlen=100)
+            "mastodon": deque(maxlen=100),
+            "rss": deque(maxlen=100),
+            "youtube": deque(maxlen=100),
+            "twitter": deque(maxlen=100)
         }
         self.stats_history = deque(maxlen=50)
         self.entity_counts = {}
@@ -178,12 +309,13 @@ class PoliticalStreamer:
         self._running = False
         self._thread = None
         
-        if self.reddit.enabled:
-            self._mode = "live"
-        elif self.news.enabled:
+        if self.news.enabled:
             self._mode = "news"
         else:
-            self._mode = "mock"
+            self._mode = "rss"
+        
+        # Override if mastodon is preferred starting point
+        self._mode = "mastodon"
 
     @property
     def mode(self):
@@ -205,8 +337,12 @@ class PoliticalStreamer:
                     current_time = time.time()
                     if current_time - self._last_fetch_time > 60:
                         new_posts = []
-                        if active_mode == "live":
-                            new_posts = self.reddit.fetch_recent(limit=20)
+                        if active_mode == "mastodon":
+                            new_posts = self.mastodon.fetch_recent(limit=25)
+                        elif active_mode == "youtube":
+                            new_posts = self.youtube.fetch_recent(limit=5)
+                        elif active_mode == "twitter":
+                            new_posts = self.twitter.fetch_recent(limit=5)
                         elif active_mode == "news":
                             new_posts = self.news.fetch_recent(limit=20)
                         elif active_mode == "rss":

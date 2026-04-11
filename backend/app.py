@@ -52,8 +52,10 @@ def health():
         "buffer_counts": {
             "mock": len(streamer.buffers["mock"]),
             "news": len(streamer.buffers["news"]),
-            "live": len(streamer.buffers["live"]),
-            "rss": len(streamer.buffers["rss"])
+            "mastodon": len(streamer.buffers["mastodon"]),
+            "rss": len(streamer.buffers["rss"]),
+            "youtube": len(streamer.buffers["youtube"]),
+            "twitter": len(streamer.buffers["twitter"])
         }
     })
 
@@ -78,9 +80,7 @@ def get_snapshot():
 def toggle_mode():
     data = request.json
     requested_mode = data.get("mode")
-    if requested_mode in ["mock", "live", "news", "rss"]:
-        if requested_mode == "live" and not streamer.reddit.enabled:
-            return jsonify({"success": False, "error": "Reddit API credentials missing"}), 400
+    if requested_mode in ["mock", "mastodon", "news", "rss", "youtube", "twitter"]:
         if requested_mode == "news" and not streamer.news.enabled:
             return jsonify({"success": False, "error": "NewsAPI Key missing in .env"}), 400
         

@@ -117,7 +117,9 @@ const App = () => {
           <button onClick={() => toggleMode('mock')} className={`btn ${data.mode === 'mock' ? 'active' : ''}`}>MOCK</button>
           <button onClick={() => toggleMode('news')} className={`btn ${data.mode === 'news' ? 'active' : ''}`}>NEWS</button>
           <button onClick={() => toggleMode('rss')} className={`btn ${data.mode === 'rss' ? 'active' : ''}`}>REDDIT</button>
-          <button onClick={() => toggleMode('live')} className={`btn ${data.mode === 'live' ? 'active' : ''}`}>LIVE</button>
+          <button onClick={() => toggleMode('youtube')} className={`btn ${data.mode === 'youtube' ? 'active' : ''}`}>YOUTUBE</button>
+          <button onClick={() => toggleMode('twitter')} className={`btn ${data.mode === 'twitter' ? 'active' : ''}`}>TWITTER</button>
+                    <button onClick={() => toggleMode('mastodon')} className={`btn ${data.mode === 'mastodon' ? 'active' : ''}`}>MASTODON</button>
         </div>
 
 
