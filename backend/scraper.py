@@ -275,9 +275,12 @@ class MockScraper:
             "entities": entities
         }
 
+from db_manager import MongoManager
+
 class PoliticalStreamer:
     def __init__(self, analyzer, reddit_keys=None, news_api_key=None):
         self.analyzer = analyzer
+        self.db = MongoManager() # Initialize MongoDB
         self.reddit = RedditScraper(**(reddit_keys or {}))
         self.news = NewsScraper(api_key=news_api_key)
         self.rss = RSSScraper()
@@ -381,6 +384,9 @@ class PoliticalStreamer:
         
         target_buffer.appendleft(post)
         self.known_ids.add(post['id'])
+        
+        # PERSIST TO MONGODB
+        self.db.save_post(post)
         
         # Update rolling statistics window
         if len(self._rolling_window) >= self._rolling_window.maxlen:

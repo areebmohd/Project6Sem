@@ -9,3 +9,7 @@ python-dotenv
 feedparser
 newsapi-python
 gunicorn
+scikit-learn
+tensorflow-cpu
+scipy
+pymongo

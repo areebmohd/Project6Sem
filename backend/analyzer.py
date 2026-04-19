@@ -1,6 +1,7 @@
 import re
 import nltk
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from ml_engine import SimilarityFinder, AdvancedSentimentModel
 
 # Regex patterns pre-compiled for performance
 URL_PATTERN = re.compile(r'http\S+|www\S+|https\S+', re.MULTILINE)
@@ -12,7 +13,8 @@ CLEAN_CHARS_PATTERN = re.compile(r'[^a-zA-Z\s]')
 class PoliticalAnalyzer:
     def __init__(self):
         self.sia = SentimentIntensityAnalyzer()
-        # Removed self.stop_words as it was unused and consuming memory
+        self.similarity_engine = SimilarityFinder()
+        self.tf_model = AdvancedSentimentModel()
 
     def clean_text(self, text):
         """High-performance text cleaning using pre-compiled regex."""
@@ -52,10 +54,22 @@ class PoliticalAnalyzer:
         else:
             sentiment = "neutral"
             
+        # TensorFlow Enrichment
+        tf_data = self.tf_model.predict(cleaned)
+            
         return {
             "sentiment": sentiment,
             "score": compound,
             "positive": scores['pos'],
             "negative": scores['neg'],
-            "neutral": scores['neu']
+            "neutral": scores['neu'],
+            "ai_meta": tf_data
         }
+
+    def update_similarities(self, posts):
+        """Re-index the scikit-learn similarity matrix."""
+        self.similarity_engine.fit_transform(posts)
+
+    def get_related_posts(self, post_id):
+        """Retrieve similar post IDs."""
+        return self.similarity_engine.get_related(post_id)

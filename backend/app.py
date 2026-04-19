@@ -48,15 +48,17 @@ def health():
     return jsonify({
         "status": "healthy",
         "mode": streamer.mode,
-        "streaming": streamer._running,
-        "buffer_counts": {
-            "mock": len(streamer.buffers["mock"]),
-            "news": len(streamer.buffers["news"]),
-            "mastodon": len(streamer.buffers["mastodon"]),
-            "rss": len(streamer.buffers["rss"]),
-            "youtube": len(streamer.buffers["youtube"]),
-            "twitter": len(streamer.buffers["twitter"])
-        }
+        "streaming": streamer._running
+    })
+@app.route('/api/related/<path:post_id>', methods=['GET'])
+def get_related(post_id):
+    # Log for debugging
+    print(f"DEBUG: Finding related for {post_id}")
+    related_ids = analyzer.get_related_posts(post_id)
+    print(f"DEBUG: Found {len(related_ids)} relations")
+    return jsonify({
+        "post_id": post_id,
+        "related_ids": related_ids
     })
 
 @app.route('/api/snapshot', methods=['GET'])
@@ -70,6 +72,13 @@ def get_snapshot():
         summary["pos_count"] = sum(1 for p in snapshot['latest_posts'] if p['sentiment'] == "positive")
         summary["neg_count"] = sum(1 for p in snapshot['latest_posts'] if p['sentiment'] == "negative")
         summary["total_count"] = len(snapshot['latest_posts'])
+        
+    # Trigger Similarity Indexing for Scikit-Learn (on-the-fly)
+    # We use a larger pool of items (up to 100) from the buffer to ensure
+    # that clicks on "Related" don't fail as items scroll off the top 15.
+    all_buffer_posts = list(streamer.buffers.get(streamer.mode, []))
+    if all_buffer_posts:
+        analyzer.update_similarities(all_buffer_posts)
         
     return jsonify({
         **snapshot,
@@ -87,6 +96,28 @@ def toggle_mode():
         streamer.mode = requested_mode
         return jsonify({"success": True, "new_mode": streamer.mode})
     return jsonify({"success": False, "error": "Invalid mode"}), 400
+
+@app.route('/api/analytics/timeseries', methods=['GET'])
+def get_timeseries():
+    # Fetch historical sentiment data from MongoDB
+    limit = request.args.get('limit', default=100, type=int)
+    data = streamer.db.get_time_series(limit=limit)
+    return jsonify(data)
+
+@app.route('/api/analytics/search', methods=['GET'])
+def search_keyword():
+    keyword = request.args.get('keyword')
+    if not keyword:
+        return jsonify({"error": "Keyword is required"}), 400
+    
+    result = streamer.db.search_keyword(keyword)
+    return jsonify(result)
+
+@app.route('/api/analytics/historical', methods=['GET'])
+def get_historical_analytics():
+    period = request.args.get('period', default='daily')
+    data = streamer.db.get_historical_stats(period=period)
+    return jsonify(data)
 
 if __name__ == '__main__':
     port = int(os.getenv("PORT", 5000))
