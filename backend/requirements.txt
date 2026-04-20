@@ -9,7 +9,8 @@ python-dotenv
 feedparser
 newsapi-python
 gunicorn
-scikit-learn
-tensorflow-cpu
-scipy
+scikit-learn==1.3.2
+tensorflow-cpu==2.15.0
+scipy==1.11.4
+numpy<2.0.0
 pymongo
