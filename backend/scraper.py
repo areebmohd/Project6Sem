@@ -316,9 +316,6 @@ class PoliticalStreamer:
             self._mode = "news"
         else:
             self._mode = "rss"
-        
-        # Override if mastodon is preferred starting point
-        self._mode = "mastodon"
 
     @property
     def mode(self):
